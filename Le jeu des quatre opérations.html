@@ -1,0 +1,290 @@
+<html><head><base href="https://websim.codexai.com/"><title>Le jeu des quatre opérations</title><meta charset="UTF-8">
+<style>
+:root {
+    --primary: #FF6B6B;
+    --secondary: #4ECDC4;
+    --accent: #FFE66D;
+    --correct: #95E1D3;
+    --incorrect: #F08080;
+}
+
+body {
+    font-family: 'Arial Rounded MT Bold', Arial, sans-serif;
+    background: #f0f9ff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.container {
+    max-width: 800px;
+    padding: 20px;
+    text-align: center;
+}
+
+h1 {
+    color: var(--primary);
+    font-size: 2.5em;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    margin: 20px 0;
+}
+
+.operation-select {
+    margin: 20px 0;
+}
+
+.operation-btn {
+    font-size: 1.5em;
+    margin: 0 10px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 15px;
+    background: var(--secondary);
+    color: white;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.operation-btn:hover {
+    transform: scale(1.1);
+}
+
+.problem-container {
+    font-size: 2em;
+    margin: 20px 0;
+    padding: 20px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.visual-aid {
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+}
+
+.star {
+    width: 30px;
+    height: 30px;
+    fill: var(--accent);
+}
+
+.answer-input {
+    font-size: 1.5em;
+    width: 100px;
+    padding: 10px;
+    border: 3px solid var(--secondary);
+    border-radius: 10px;
+    text-align: center;
+}
+
+.submit-btn {
+    font-size: 1.5em;
+    padding: 10px 30px;
+    margin: 20px 0;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.submit-btn:hover {
+    transform: scale(1.1);
+}
+
+.feedback {
+    font-size: 1.5em;
+    margin: 20px 0;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.correct {
+    background: var(--correct);
+    color: white;
+}
+
+.incorrect {
+    background: var(--incorrect);
+    color: white;
+}
+
+.progress {
+    font-size: 1.2em;
+    margin: 20px 0;
+}
+
+.multiplication-grid {
+    display: grid;
+    gap: 5px;
+    margin: 20px auto;
+    max-width: 300px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>⭐ Le jeu des quatre opérations ⭐</h1>
+    
+    <div class="operation-select">
+        <button class="operation-btn" data-op="add">+</button>
+        <button class="operation-btn" data-op="subtract">-</button>
+        <button class="operation-btn" data-op="multiply">×</button>
+        <button class="operation-btn" data-op="divide">÷</button>
+    </div>
+    
+    <div class="problem-container">
+        <div id="problem">Choisissez une opération!</div>
+        <div id="visual-aid" class="visual-aid"></div>
+    </div>
+    
+    <input type="number" class="answer-input" placeholder="Réponse">
+    <button class="submit-btn">Vérifier</button>
+    
+    <div class="feedback"></div>
+    
+    <div class="progress">
+        Correct: <span id="correct">0</span>
+        Incorrect: <span id="incorrect">0</span>
+    </div>
+</div>
+
+<script>
+const state = {
+    currentOp: null,
+    num1: 0,
+    num2: 0,
+    correctAnswer: 0,
+    correct: 0,
+    incorrect: 0
+};
+
+function createStar(color) {
+    return `<svg class="star" viewBox="0 0 51 48">
+        <path fill="${color}" d="M25.5 0L31.8 18.2H51L35.4 29.3L41.7 47.5L25.5 36.4L9.3 47.5L15.6 29.3L0 18.2H19.2L25.5 0Z"/>
+    </svg>`;
+}
+
+function generateProblem() {
+    const maxNum = state.currentOp === 'multiply' || state.currentOp === 'divide' ? 6 : 10;
+    state.num1 = Math.floor(Math.random() * maxNum) + 1;
+    state.num2 = Math.floor(Math.random() * maxNum) + 1;
+    
+    if (state.currentOp === 'subtract') {
+        [state.num1, state.num2] = [Math.max(state.num1, state.num2), Math.min(state.num1, state.num2)];
+    } else if (state.currentOp === 'divide') {
+        state.num1 = state.num1 * state.num2;
+    }
+    
+    const operations = {
+        add: '+',
+        subtract: '-',
+        multiply: '×',
+        divide: '÷'
+    };
+    
+    document.getElementById('problem').textContent = 
+        `${state.num1} ${operations[state.currentOp]} ${state.num2} = `;
+    
+    updateVisualAid();
+    calculateAnswer();
+}
+
+function updateVisualAid() {
+    const visualAid = document.getElementById('visual-aid');
+    visualAid.innerHTML = '';
+    
+    if (state.currentOp === 'add' || state.currentOp === 'subtract') {
+        const group1 = document.createElement('div');
+        const operator = document.createElement('div');
+        const group2 = document.createElement('div');
+        
+        for (let i = 0; i < state.num1; i++) {
+            group1.innerHTML += createStar('#4ECDC4');
+        }
+        
+        operator.textContent = state.currentOp === 'add' ? '+' : '-';
+        operator.style.margin = '0 10px';
+        
+        for (let i = 0; i < state.num2; i++) {
+            group2.innerHTML += createStar('#FFE66D');
+        }
+        
+        visualAid.appendChild(group1);
+        visualAid.appendChild(operator);
+        visualAid.appendChild(group2);
+    } else if (state.currentOp === 'multiply' || state.currentOp === 'divide') {
+        const grid = document.createElement('div');
+        grid.className = 'multiplication-grid';
+        
+        if (state.currentOp === 'multiply') {
+            grid.style.gridTemplateColumns = `repeat(${state.num2}, 1fr)`;
+            const totalStars = state.num1 * state.num2;
+            for (let i = 0; i < totalStars; i++) {
+                grid.innerHTML += createStar('#4ECDC4');
+            }
+        } else { // divide
+            grid.style.gridTemplateColumns = `repeat(${state.num2}, 1fr)`;
+            const totalStars = state.num1;
+            for (let i = 0; i < totalStars; i++) {
+                grid.innerHTML += createStar('#4ECDC4');
+            }
+        }
+        
+        visualAid.appendChild(grid);
+    }
+}
+
+function calculateAnswer() {
+    switch(state.currentOp) {
+        case 'add':
+            state.correctAnswer = state.num1 + state.num2;
+            break;
+        case 'subtract':
+            state.correctAnswer = state.num1 - state.num2;
+            break;
+        case 'multiply':
+            state.correctAnswer = state.num1 * state.num2;
+            break;
+        case 'divide':
+            state.correctAnswer = state.num1 / state.num2;
+            break;
+    }
+}
+
+document.querySelectorAll('.operation-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        state.currentOp = e.target.dataset.op;
+        generateProblem();
+    });
+});
+
+document.querySelector('.submit-btn').addEventListener('click', () => {
+    const userAnswer = parseInt(document.querySelector('.answer-input').value);
+    const feedback = document.querySelector('.feedback');
+    
+    if (userAnswer === state.correctAnswer) {
+        feedback.textContent = 'Bravo! C\'est correct!';
+        feedback.className = 'feedback correct';
+        state.correct++;
+    } else {
+        feedback.textContent = `Incorrect. La bonne réponse est ${state.correctAnswer}`;
+        feedback.className = 'feedback incorrect';
+        state.incorrect++;
+    }
+    
+    document.getElementById('correct').textContent = state.correct;
+    document.getElementById('incorrect').textContent = state.incorrect;
+    
+    setTimeout(() => {
+        document.querySelector('.answer-input').value = '';
+        generateProblem();
+    }, 2000);
+});
+</script>
+</body></html>
